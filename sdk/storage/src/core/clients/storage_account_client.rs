@@ -13,7 +13,7 @@ use http::{
     method::Method,
     request::{Builder, Request},
 };
-use ring::hmac;
+use openssl::{error::ErrorStack, hash::MessageDigest, pkey::PKey, sign::Signer};
 use std::sync::Arc;
 use url::Url;
 
@@ -394,7 +394,7 @@ impl StorageAccountClient {
                         account,
                         key,
                         service_type,
-                    );
+                    )?;
                     request.header(AUTHORIZATION, auth)
                 } else {
                     request
@@ -445,26 +445,32 @@ fn generate_authorization(
     account: &str,
     key: &str,
     service_type: ServiceType,
-) -> String {
+) -> crate::Result<String> {
     let str_to_sign = string_to_sign(h, u, method, account, service_type);
 
     // debug!("\nstr_to_sign == {:?}\n", str_to_sign);
     // debug!("str_to_sign == {}", str_to_sign);
 
-    let auth = encode_str_to_sign(&str_to_sign, key);
+    let auth = encode_str_to_sign(&str_to_sign, key)?;
     // debug!("auth == {:?}", auth);
 
-    format!("SharedKey {}:{}", account, auth)
+    Ok(format!("SharedKey {}:{}", account, auth))
 }
 
-fn encode_str_to_sign(str_to_sign: &str, hmac_key: &str) -> String {
-    let key = hmac::Key::new(ring::hmac::HMAC_SHA256, &base64::decode(hmac_key).unwrap());
-    let sig = hmac::sign(&key, str_to_sign.as_bytes());
+fn encode_str_to_sign(str_to_sign: &str, hmac_key: &str) -> crate::Result<String> {
+    let dkey = base64::decode(hmac_key).map_err(|e| crate::Error::Base64DecodeError(e))?;
+    let sig = || -> Result<Vec<u8>, ErrorStack> {
+        let pkey = PKey::hmac(&dkey)?;
+        let mut signer = Signer::new(MessageDigest::sha256(), &pkey)?;
+        signer.update(str_to_sign.as_bytes())?;
+        Ok(signer.sign_to_vec()?)
+    }()
+    .map_err(|e| crate::Error::DataConversion(e))?;
 
     // let res = hmac.result();
     // debug!("{:?}", res.code());
 
-    base64::encode(sig.as_ref())
+    Ok(base64::encode(sig))
 }
 
 fn add_if_exists<K: AsHeaderName>(h: &HeaderMap, key: K) -> &str {
