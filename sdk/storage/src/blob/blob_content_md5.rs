@@ -4,11 +4,14 @@ use http::request::Builder;
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct BlobContentMD5([u8; 16]);
 
-impl From<md5::Digest> for BlobContentMD5 {
-    fn from(md5: md5::Digest) -> Self {
-        BlobContentMD5(md5.0)
-    }
-}
+/* forbidden md5 for fips 140
+ *
+ * impl From<md5::Digest> for BlobContentMD5 {
+ *     fn from(md5: md5::Digest) -> Self {
+ *         BlobContentMD5(md5.0)
+ *     }
+ * }
+ */
 
 impl AddAsHeader for BlobContentMD5 {
     fn add_as_header(&self, builder: Builder) -> Builder {

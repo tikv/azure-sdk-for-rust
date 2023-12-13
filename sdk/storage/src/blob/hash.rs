@@ -35,8 +35,11 @@ impl AddAsHeader for Hash {
     }
 }
 
-impl From<md5::Digest> for Hash {
-    fn from(md5: md5::Digest) -> Self {
-        Hash::MD5(md5.0)
-    }
-}
+/* forbidden md5 for fips 140
+ *
+ * impl From<md5::Digest> for Hash {
+ *     fn from(md5: md5::Digest) -> Self {
+ *         Hash::MD5(md5.0)
+ *     }
+ * }
+ */

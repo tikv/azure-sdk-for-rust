@@ -1,5 +1,7 @@
 use std::cmp::PartialEq;
 
+use openssl::error::ErrorStack;
+
 /// A specialized Result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -73,6 +75,8 @@ pub enum Error {
     HeadersNotFound(Vec<String>),
     #[error("error writing the header value: {0}")]
     InvalidHeaderValue(#[from] azure_core::HTTPHeaderError),
+    #[error("failed to create hmac from key: {0:?}")]
+    DataConversion(ErrorStack),
 }
 
 impl From<azure_core::HttpError> for Error {

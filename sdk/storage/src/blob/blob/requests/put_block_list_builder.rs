@@ -65,19 +65,25 @@ impl<'a> PutBlockListBuilder<'a> {
         let body = self.block_list.to_xml();
         let body_bytes = Bytes::from(body);
 
-        // calculate the xml MD5. This can be made optional
-        // if needed, but i think it's best to calculate it.
-        let md5 = {
-            let hash = md5::compute(body_bytes.clone());
-            debug!("md5 hash: {:02X}", hash);
-            base64::encode(hash.0)
-        };
+        /* forbidden md5 for fips 140. TiKV won't run here, just clean md5.
+         *
+         * // calculate the xml MD5. This can be made optional
+         * // if needed, but i think it's best to calculate it.
+         * let md5 = {
+         *    let hash = md5::compute(body_bytes.clone());
+         *    debug!("md5 hash: {:02X}", hash);
+         *    base64::encode(hash.0)
+         * };
+         */
 
         let (request, _url) = self.blob_client.prepare_request(
             url.as_str(),
             &http::Method::PUT,
             &|mut request| {
-                request = request.header("Content-MD5", &md5);
+                /* forbidden md5 for fips 140
+                 *
+                 * request = request.header("Content-MD5", &md5);
+                 */
                 request = add_optional_header(&self.content_type, request);
                 request = add_optional_header(&self.content_encoding, request);
                 request = add_optional_header(&self.content_language, request);

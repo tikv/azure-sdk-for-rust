@@ -11,6 +11,7 @@ use azure_storage::blob::{
 use azure_storage::core::prelude::*;
 use bytes::Bytes;
 use chrono::{FixedOffset, Utc};
+use openssl::hash::{hash, MessageDigest};
 use std::ops::Add;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -126,7 +127,8 @@ async fn put_and_get_block_list() {
     let contents2 = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     let contents3 = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
 
-    let digest3 = md5::compute(contents3).into();
+    let digest3 = hash(MessageDigest::md5(), &data).unwrap();
+    //let digest3 = md5::compute(contents3).into();
 
     let put_block_response = blob
         .put_block("block1", Bytes::from(contents1))
@@ -256,7 +258,8 @@ async fn put_block_blob() {
     }
 
     // calculate md5 too!
-    let digest = md5::compute(&data[..]).into();
+    //let digest = md5::compute(&data[..]).into();
+    let digest = hash(MessageDigest::md5(), &data).unwrap();
 
     blob.put_block_blob(data)
         .content_type("text/plain")
@@ -297,7 +300,8 @@ async fn copy_blob() {
     }
 
     // calculate md5 too!
-    let digest = md5::compute(&data[..]).into();
+    //let digest = md5::compute(&data[..]).into();
+    let digest = hash(MessageDigest::md5(), &data).unwrap();
 
     blob.put_block_blob(data)
         .content_type("text/plain")
@@ -357,7 +361,8 @@ async fn put_block_blob_and_get_properties() {
     }
 
     // calculate md5 too!
-    let digest = md5::compute(&data[..]).into();
+    //let digest = md5::compute(&data[..]).into();
+    let digest = hash(MessageDigest::md5(), &data).unwrap();
 
     blob.put_block_blob(data)
         .content_type("text/plain")

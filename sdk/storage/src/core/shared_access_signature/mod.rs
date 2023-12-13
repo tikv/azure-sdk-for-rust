@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use ring::hmac;
+use openssl::{error::ErrorStack, hash::MessageDigest, pkey::PKey, sign::Signer};
 use std::fmt;
 use url::form_urlencoded;
 
@@ -10,10 +10,18 @@ pub trait SasToken {
     fn token(&self) -> String;
 }
 
+// TiKV won't run here, so it's OK to unwrap the error.
 pub(crate) fn sign(key: &str, data: &str) -> String {
-    let key = hmac::Key::new(ring::hmac::HMAC_SHA256, &base64::decode(key).unwrap());
-    let sig_bytes = hmac::sign(&key, data.as_bytes());
-    base64::encode(&sig_bytes)
+    let dkey = base64::decode(key).unwrap();
+    let sig = || -> Result<Vec<u8>, ErrorStack> {
+        let pkey = PKey::hmac(&dkey)?;
+        let mut signer = Signer::new(MessageDigest::sha256(), &pkey)?;
+        signer.update(data.as_bytes())?;
+        Ok(signer.sign_to_vec()?)
+    }()
+    .unwrap();
+
+    base64::encode(sig)
 }
 
 pub(crate) fn format_date(d: DateTime<Utc>) -> String {
